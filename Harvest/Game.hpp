@@ -264,7 +264,8 @@ public:
             }
             else if (object->getType() == ActorType::Turret) {
                 Turret& turret = *dynamic_cast<Turret*>(object.get());
-                
+                if (turret.energy <= 0.f) 
+                    continue;
                 if (turret.target == 0) {
                     auto neighbours = query(object->position, 200.f, object->getId(), enemies);
                     if (neighbours.empty())
@@ -285,6 +286,10 @@ public:
                     // the target might have moved in the meantime
                     turret.target_pos = enemy.position;
                     enemy.energy -= 1.f;
+                    turret.energy -= .05f;
+                    // when the turret powers down, reset its target
+                    if (turret.energy <= 0.f)
+                        turret.target = 0;
                 }
             }
             else if (object->getType() == ActorType::Tank) {
