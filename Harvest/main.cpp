@@ -28,6 +28,7 @@ int main(void)
     globalConfig.set("harvester_cost", 10);
     globalConfig.set("link_cost", 2);
     globalConfig.set("powerplant_cost", 50);
+    globalConfig.set("max_turret_energy", 20);
 
     // Game objects
     GameState game(window, globalConfig);

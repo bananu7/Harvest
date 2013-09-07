@@ -69,23 +69,39 @@ public:
         switch (clickState) {
             case ClickState::Idle: break;
             case ClickState::BuildTurret: {
-                Spawner<Turret> turretSpawner(drawer, config);
-                objects[++objectIdCounter] = turretSpawner.spawn_ptr(clickPos, objectIdCounter+1);
+                auto turret_cost = config.get("turret_cost", 15);
+                if (money >= turret_cost) {
+                    money -= turret_cost;
+                    Spawner<Turret> turretSpawner(drawer, config);
+                    objects[++objectIdCounter] = turretSpawner.spawn_ptr(clickPos, objectIdCounter+1);
+                }
                 break; 
             }
             case ClickState::BuildHarvester: {
-                Spawner<Harvester> harvesterSpawner(drawer, config);
-                objects[++objectIdCounter] = harvesterSpawner.spawn_ptr(clickPos, objectIdCounter+1);
+                auto harvester_cost = config.get("harvester_cost", 12);
+                if (money >= harvester_cost) {
+                    money -= harvester_cost;
+                    Spawner<Harvester> harvesterSpawner(drawer, config);
+                    objects[++objectIdCounter] = harvesterSpawner.spawn_ptr(clickPos, objectIdCounter+1);
+                }
                 break;
             }
             case ClickState::BuildLink: {
-                Spawner<EnergyLink> linkSpawner(drawer, config);
-                objects[++objectIdCounter] = linkSpawner.spawn_ptr(clickPos, objectIdCounter+1);
+                auto link_cost = config.get("link_cost", 2);
+                if (money >= link_cost) {
+                    money -= link_cost;
+                    Spawner<EnergyLink> linkSpawner(drawer, config);
+                    objects[++objectIdCounter] = linkSpawner.spawn_ptr(clickPos, objectIdCounter+1);
+                }
                 break;
             }
             case ClickState::BuildPowerplant: {
-                Spawner<SolarPlant> plantSpawner(drawer, config);
-                objects[++objectIdCounter] = plantSpawner.spawn_ptr(clickPos, objectIdCounter+1);
+                auto powerplant_cost = config.get("powerplant_cost", 50);
+                if (money >= powerplant_cost) {
+                    money -= powerplant_cost;
+                    Spawner<SolarPlant> plantSpawner(drawer, config);
+                    objects[++objectIdCounter] = plantSpawner.spawn_ptr(clickPos, objectIdCounter+1);
+                }
                 break;
             }
         }
@@ -144,6 +160,7 @@ public:
         possible_targets.insert(ActorType::Harvester);
         possible_targets.insert(ActorType::Link);
         possible_targets.insert(ActorType::Turret);
+        possible_targets.insert(ActorType::SolarPlant);
 
         std::set<ActorType> rocks;
         rocks.insert(ActorType::Rock);
@@ -165,7 +182,7 @@ public:
                     }
                 }
                 else {
-                    object->energy += 5.f;
+                    object->energy += 2.f;
                 }
             }
             else if (object->getType() == ActorType::EnergyPacket) {
@@ -176,11 +193,16 @@ public:
                     // Are we terminating or bouncing?
                     bool bounce = false;
 
-                    if (target->getType() == ActorType::Link) {
+                    if ((target->getType() == ActorType::Link) || 
+                        (target->getType() == ActorType::SolarPlant)) {
                         bounce = true;
                     }
                     else if ((target->getType() == ActorType::Harvester) &&
                              (target->energy > 0.f)) {
+                        bounce = true;
+                    }
+                    else if ((target->getType() == ActorType::Turret) &&
+                            (target->energy >= config.get("max_turret_energy", 20.f))) {
                         bounce = true;
                     }
 
@@ -216,7 +238,7 @@ public:
                 } 
                 else {
                     if (hv.energy > 0.f) { // currently farming
-                        object->energy -= 0.05f;
+                        object->energy -= 0.01f;
                     } 
                     else { // just finished farming
                         object->energy = 0.f;
