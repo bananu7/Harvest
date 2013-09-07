@@ -3,80 +3,95 @@
 #include <SFML/System/Vector2.hpp>
 #include <SFML/Graphics.hpp>
 
+class Drawer {
+    sf::RenderTarget& rt;
+public:
+    Drawer(sf::RenderTarget& rt) : rt(rt) { }
+
+    void drawCircle(Point position, float radius, Color color) {
+        static sf::CircleShape shape;
+        shape.setRadius(radius);
+        shape.setOrigin(radius, radius);
+        shape.setPosition(position);
+        shape.setFillColor(color);
+        rt.draw(shape);
+    }
+};
+
 class Actor {
 protected:
     unsigned id;
-    sf::RenderTarget& rt;
+    Drawer& rt;
     Config& config;
+    Point position;
+
 public:
-    Actor(sf::RenderTarget& rt, Config& config) : rt(rt), config(config) { }
+    Actor(Drawer& rt, Config& config, Point const& position)
+        : rt(rt), config(config), position(position) { }
     virtual void draw() = 0;
 };
 
 template<class T>
 class Spawner {
-    sf::RenderTarget& rt;
+    Drawer& rt;
     Config& config;
 public:
-    Spawner(sf::RenderTarget& rt, Config& config) : rt(rt), config(config) { }
-    T spawn (typename T::Info const& info) {
+    Spawner(Drawer& rt, Config& config) : rt(rt), config(config) { }
+    T spawn (Point const& info) {
         return T (rt, config, info);
     }
-    std::unique_ptr<T> spawn_ptr (typename T::Info const& info) {
-        return std::unique_ptr<T>(new T (rt, config, info));
+    std::unique_ptr<T> spawn_ptr (Point const& position) {
+        return std::unique_ptr<T>(new T (rt, config, position));
     }
 };
 
 class Turret : public Actor {
-    sf::CircleShape shape;
 public:
-    struct Info { 
-        sf::Vector2f position;
-        Info(sf::Vector2f const& position) : position(position) { }
-    };
-
-    Turret(sf::RenderTarget& rt, Config& config, Info const& info)
-        : Actor(rt, config)
-    {
-        shape.setRadius(10.f);
-        shape.setPosition(info.position);
-        shape.setFillColor(config.get("turret_color", sf::Color::Red));
-    }
-
+    Turret(Drawer& rt, Config& config, Point const& position)
+        : Actor(rt, config, position)
+    { }
     void draw() override {
-        rt.draw(shape);
+        rt.drawCircle(position, 10.f, config.get("turret_color", sf::Color::Red));
     }
 };
 
 class EnergyLink : public Actor {
+public:
+    EnergyLink(Drawer& rt, Config& config, Point const& position)
+        : Actor(rt, config, position)
+    { }
+    void draw() override {
+        rt.drawCircle(position, 6.f, config.get("link_color", sf::Color(220, 220, 20)));
+    }
 };
 
 class SolarPlant : public Actor {
+public:
+    SolarPlant(Drawer& rt, Config& config, Point const& position)
+        : Actor(rt, config, position)
+    { }
+    void draw() override {
+        rt.drawCircle(position, 30.f, config.get("plant_color", sf::Color(116, 40, 148)));
+    }
 };
 
 class Rock : public Actor {
-    sf::CircleShape shape;
 public:
-    struct Info {
-        sf::Vector2f position;
-        Info(sf::Vector2f const& position) : position(position) { }
-    };
-
-    Rock(sf::RenderTarget& rt, Config& config, Info const& info)
-        : Actor(rt, config)
-    {
-        //shape.setPointCount(rand() % 4 + 4);
-        shape.setRadius(15.f);
-        shape.setPosition(info.position);
-        /*for (unsigned i = 0; i < shape.getPointCount(); ++i)
-            shape.setPoint(i, sf::Vector2f(*/
-        shape.setFillColor(config.get("rock_color", sf::Color(120, 120, 120)));
-    }
+    Rock(Drawer& rt, Config& config, Point const& position)
+        : Actor(rt, config, position)
+    { }
     void draw() override {
-        rt.draw(shape);
+        rt.drawCircle(position, 15.f, config.get("rock_color", sf::Color(120, 120, 120)));
     }
 };
 
 class Harvester : public Actor {
+public:
+    Harvester(Drawer& rt, Config& config, Point const& position)
+        : Actor(rt, config, position)
+    { }
+    void draw() override {
+        rt.drawCircle(position, 12.f, config.get("harvester_color", sf::Color(20, 170, 30)));
+    }
 };
 

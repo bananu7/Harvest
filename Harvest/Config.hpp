@@ -4,6 +4,8 @@
 #include <boost/variant.hpp>
 #include <boost/optional.hpp>
 
+typedef sf::Vector2f Point;
+typedef sf::Color Color;
 typedef boost::variant<float, int, std::string, bool, sf::Color> Option;
 
 class Config {
