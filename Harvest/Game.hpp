@@ -60,6 +60,7 @@ public:
         case ClickState::BuildHarvester: return "BuildHarvester";
         case ClickState::BuildLink: return "BuildLink";
         case ClickState::BuildPowerplant: return "BuildPowerplant";
+        default: return "Invalid state";
         }
     }
 
@@ -73,7 +74,8 @@ public:
                 if (money >= turret_cost) {
                     money -= turret_cost;
                     Spawner<Turret> turretSpawner(drawer, config);
-                    objects[++objectIdCounter] = turretSpawner.spawn_ptr(clickPos, objectIdCounter+1);
+                    ++objectIdCounter;
+                    objects[objectIdCounter] = turretSpawner.spawn_ptr(clickPos, objectIdCounter);
                 }
                 break; 
             }
@@ -82,7 +84,8 @@ public:
                 if (money >= harvester_cost) {
                     money -= harvester_cost;
                     Spawner<Harvester> harvesterSpawner(drawer, config);
-                    objects[++objectIdCounter] = harvesterSpawner.spawn_ptr(clickPos, objectIdCounter+1);
+                    ++objectIdCounter;
+                    objects[objectIdCounter] = harvesterSpawner.spawn_ptr(clickPos, objectIdCounter);
                 }
                 break;
             }
@@ -91,7 +94,8 @@ public:
                 if (money >= link_cost) {
                     money -= link_cost;
                     Spawner<EnergyLink> linkSpawner(drawer, config);
-                    objects[++objectIdCounter] = linkSpawner.spawn_ptr(clickPos, objectIdCounter+1);
+                    ++objectIdCounter;
+                    objects[objectIdCounter] = linkSpawner.spawn_ptr(clickPos, objectIdCounter);
                 }
                 break;
             }
@@ -100,7 +104,8 @@ public:
                 if (money >= powerplant_cost) {
                     money -= powerplant_cost;
                     Spawner<SolarPlant> plantSpawner(drawer, config);
-                    objects[++objectIdCounter] = plantSpawner.spawn_ptr(clickPos, objectIdCounter+1);
+                    ++objectIdCounter;
+                    objects[objectIdCounter] = plantSpawner.spawn_ptr(clickPos, objectIdCounter);
                 }
                 break;
             }
@@ -118,6 +123,13 @@ public:
             case sf::Keyboard::R: clickState = ClickState::BuildHarvester; break;
             case sf::Keyboard::E: clickState = ClickState::BuildLink; break;
             case sf::Keyboard::S: clickState = ClickState::BuildPowerplant; break;
+            case sf::Keyboard::T: {
+                Spawner<Tank> tankSpawner(drawer, config);
+                sf::Vector2f pos (random(0.f, 800.f), random(0.f, 600.f));
+                ++objectIdCounter;
+                objects[objectIdCounter] = tankSpawner.spawn_ptr(pos, objectIdCounter);
+                break;
+            }
         }
     }
 
@@ -164,6 +176,9 @@ public:
 
         std::set<ActorType> rocks;
         rocks.insert(ActorType::Rock);
+
+        std::set<ActorType> enemies;
+        enemies.insert(ActorType::Tank);
 
         for (auto& object : objects | boost::adaptors::map_values) {
             if (object->getType() == ActorType::SolarPlant) {
@@ -244,6 +259,58 @@ public:
                         object->energy = 0.f;
                         money += 1;
                         hv.target = 0;
+                    }
+                }
+            }
+            else if (object->getType() == ActorType::Turret) {
+                Turret& turret = *dynamic_cast<Turret*>(object.get());
+                
+                if (turret.target == 0) {
+                    auto neighbours = query(object->position, 200.f, object->getId(), enemies);
+                    if (neighbours.empty())
+                        continue;
+                    unsigned n = random(0, neighbours.size()-1);
+
+                    auto& enemy = *objects[neighbours[n]];
+                    turret.target = neighbours[n];
+                    turret.target_pos = enemy.position;
+                }
+                else {
+                    auto & result = objects.find(turret.target);
+                    if (result == objects.end()) {
+                        turret.target = 0;
+                        continue;
+                    }
+                    auto & enemy = *(result->second);
+                    // the target might have moved in the meantime
+                    turret.target_pos = enemy.position;
+                    enemy.energy -= 1.f;
+                }
+            }
+            else if (object->getType() == ActorType::Tank) {
+                Tank& tank = *dynamic_cast<Tank*>(object.get());
+                if (tank.energy <= 0.f) {
+                    flaggedForDeletion.push_back(tank.getId());
+                    continue;
+                }
+                else {
+                    if (tank.target == 0) {
+                        auto neighbours = query(object->position, 500.f, object->getId(), possible_targets);
+                        // any rocks nearby?
+                        if (!neighbours.empty()) {
+                            unsigned n = random(0, neighbours.size()-1);
+                            tank.target = neighbours[n];
+                        }
+                    }
+                    else {
+                        auto & result = objects.find(tank.target);
+                        if (result == objects.end()) {
+                            tank.target = 0;
+                            continue;
+                        }
+                        auto const& target = result->second;
+                        tank.position.x += cosf(direction(tank.position, target->position)) * 0.5f;
+                        tank.position.y += sinf(direction(tank.position, target->position)) * 0.5f;
                     }
                 }
             }

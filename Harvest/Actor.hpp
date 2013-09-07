@@ -17,6 +17,15 @@ public:
         rt.draw(shape);
     }
 
+    void drawSquare(Point position, float size, float direction, Color color) {
+        static sf::RectangleShape shape;
+        shape.setSize(sf::Vector2f(size, size));
+        shape.setOrigin(size * .5f, size * .5f);
+        shape.setPosition(position);
+        shape.setFillColor(color);
+        rt.draw(shape);
+    }
+
     void drawLine(Point a, Point b, float width, Color color) {
         sf::Vertex line[] = { sf::Vertex(a), sf::Vertex(b) };
         rt.draw(line, 2, sf::Lines);
@@ -29,7 +38,8 @@ enum class ActorType {
     Turret,
     Harvester,
     Rock,
-    EnergyPacket
+    EnergyPacket,
+    Tank
 };
 
 class Actor {
@@ -68,11 +78,17 @@ public:
 
 class Turret : public Actor {
 public:
+    unsigned target;
+    Point target_pos;
     Turret(Drawer& rt, Config& config, unsigned id, Point const& position)
         : Actor(rt, config, id, position)
+        , target(0u)
     { }
     void draw() override {
         rt.drawCircle(position, 10.f, config.get("turret_color", sf::Color::Red));
+        if (target != 0) {
+            rt.drawLine(position, target_pos, 2.f, sf::Color::Green);
+        }
     }
     ActorType getType() override { return ActorType::Turret; }
 };
@@ -140,5 +156,22 @@ public:
         rt.drawCircle(position, 3.f, config.get("energypacket_color", sf::Color::Yellow));
     }
     ActorType getType() override { return ActorType::EnergyPacket; }
+};
+
+class Tank : public Actor {
+public:
+    unsigned hp;
+    unsigned target;
+
+    Tank(Drawer& rt, Config& config, unsigned id, Point const& position)
+        : Actor(rt, config, id, position)
+        , target(0u)
+    { 
+        energy = 100.f;
+    }
+    void draw() override {
+        rt.drawSquare(position, 25.f, 0.f, config.get("tank_color", sf::Color(0, 128, 255)));
+    }
+    ActorType getType() override { return ActorType::Tank; }
 };
 
