@@ -19,10 +19,6 @@ int main(void)
     sf::Clock timer;
     float delta = 0.f;
 
-    // Font
-    sf::Font font;
-    font.loadFromFile("../Resources/font.ttf");
-
     // Config
     Config globalConfig;
     globalConfig.set("player_hp", 100);
@@ -60,15 +56,11 @@ int main(void)
             }
         }
 
-        // DRAWING
-        window.clear(sf::Color::White);
-        game.draw();
+        game.update();
 
-        // output debug info
-        sf::Text text("Selected : " + game.getClickStateAsStr(), font);
-        text.setPosition(0, 0);
-        text.setColor(sf::Color::Black);
-        window.draw(text);
+        // DRAWING
+        window.clear(sf::Color(30,30,30));
+        game.draw();
 
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
         window.display();

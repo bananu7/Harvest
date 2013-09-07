@@ -1,12 +1,26 @@
 #pragma once
 #include "Config.hpp"
+#include "Random.hpp"
 #include <boost/range/adaptor/map.hpp>
+#include <boost/lexical_cast.hpp>
 #include <SFML/Graphics/RenderTarget.hpp>
+
+#include <set>
+
+float distance (Point const& a, Point const& b) {
+    float dx = a.x-b.x;
+    float dy = a.y-b.y;
+    return std::sqrt(dx*dx + dy*dy);
+}
+float direction (Point const& a, Point const& b) {
+    return std::atan2(b.y-a.y, b.x-a.x);
+}
 
 class GameState {
     Config& config;
     sf::RenderTarget& rt;
     Drawer drawer;
+    sf::Font font;
 
     std::map<unsigned, std::unique_ptr<Actor>> objects;
     unsigned objectIdCounter;
@@ -30,11 +44,12 @@ public:
         , objectIdCounter(0u)
         , drawer(rt)
     {
+        font.loadFromFile("../Resources/font.ttf");
         // Add a few rocks
         Spawner<Rock> rockSpawner(drawer, config);
         for (unsigned i = 0; i < 20; ++i) {
             sf::Vector2f pos (random(0.f, 800.f), random(0.f, 600.f));
-            objects[++objectIdCounter] = rockSpawner.spawn_ptr(pos);
+            objects[++objectIdCounter] = rockSpawner.spawn_ptr(pos, objectIdCounter+1);
         }
     }
 
@@ -55,22 +70,22 @@ public:
             case ClickState::Idle: break;
             case ClickState::BuildTurret: {
                 Spawner<Turret> turretSpawner(drawer, config);
-                objects[++objectIdCounter] = turretSpawner.spawn_ptr(clickPos);
+                objects[++objectIdCounter] = turretSpawner.spawn_ptr(clickPos, objectIdCounter+1);
                 break; 
             }
             case ClickState::BuildHarvester: {
                 Spawner<Harvester> harvesterSpawner(drawer, config);
-                objects[++objectIdCounter] = harvesterSpawner.spawn_ptr(clickPos);
+                objects[++objectIdCounter] = harvesterSpawner.spawn_ptr(clickPos, objectIdCounter+1);
                 break;
             }
             case ClickState::BuildLink: {
                 Spawner<EnergyLink> linkSpawner(drawer, config);
-                objects[++objectIdCounter] = linkSpawner.spawn_ptr(clickPos);
+                objects[++objectIdCounter] = linkSpawner.spawn_ptr(clickPos, objectIdCounter+1);
                 break;
             }
             case ClickState::BuildPowerplant: {
                 Spawner<SolarPlant> plantSpawner(drawer, config);
-                objects[++objectIdCounter] = plantSpawner.spawn_ptr(clickPos);
+                objects[++objectIdCounter] = plantSpawner.spawn_ptr(clickPos, objectIdCounter+1);
                 break;
             }
         }
@@ -94,6 +109,85 @@ public:
         for (auto& object : objects | boost::adaptors::map_values) {
             object->draw();
         }
+
+        // output debug info
+        sf::Text text("Selected : " + getClickStateAsStr(), font);
+        text.setPosition(0, 0);
+        text.setColor(sf::Color::Black);
+        rt.draw(text);
+
+        text.setPosition(0, 30);
+        text.setString("Object count: " + boost::lexical_cast<std::string>(objects.size()));
+        rt.draw(text);
+    }
+
+    std::vector<unsigned> query(Point position, float radius, unsigned exclude, std::set<ActorType> filterType) {
+        std::vector<unsigned> results;
+        for (auto& iter : objects) {
+            if (distance(position, iter.second->position) < radius) {
+                if (iter.first != exclude)
+                    if (filterType.find(iter.second->getType()) != filterType.end())
+                        results.push_back(iter.first);
+            }
+        }
+        return results;
+    }
+
+    void update() {
+        std::vector<unsigned> flaggedForDeletion;
+
+        std::set<ActorType> possible_targets;
+        possible_targets.insert(ActorType::Harvester);
+        possible_targets.insert(ActorType::Link);
+        possible_targets.insert(ActorType::Turret);
+
+        for (auto& object : objects | boost::adaptors::map_values) {
+            if (object->getType() == ActorType::SolarPlant) {
+                if (object->energy >= 100.f) {
+                    // get possible objects we can send our packet to
+                    auto neighbours = query(object->position, 100.f, object->getId(), possible_targets);
+                    if (!neighbours.empty()) {
+                        // pick a random target
+                        unsigned n = random(0, neighbours.size()-1);
+                        // create a new energy packet
+                        auto packet = std::unique_ptr<EnergyPacket>(
+                            new EnergyPacket(drawer, config, objectIdCounter+1, object->position, neighbours[n]));
+                        objects[++objectIdCounter] = std::move(packet);
+                        // start accumulating energy for the next packet
+                        object->energy = 0.f;
+                    }
+                }
+                else {
+                    object->energy += 10.f;
+                }
+            }
+            else if (object->getType() == ActorType::EnergyPacket) {
+                EnergyPacket & p = *dynamic_cast<EnergyPacket*>(object.get());
+                auto& target = objects[p.target];
+                // reached the target
+                if (distance(p.position, target->position) < 5.f) {
+                    // Are we terminating or bouncing?
+                    if (target->getType() == ActorType::Link) {
+                        // bounce
+                        auto neighbours = query(target->position, 100.f, target->getId(), possible_targets);
+                        unsigned n = random(0, neighbours.size()-1);
+                        p.target = neighbours[n];
+                    }
+                    else {
+                        // terminate
+                        flaggedForDeletion.push_back(p.getId());
+                        target->energy += 1.f;
+                    }
+                }
+                else {
+                    p.position.x += cosf(direction(p.position, target->position));
+                    p.position.y += sinf(direction(p.position, target->position));
+                }
+            }
+        }
+
+        for (unsigned i : flaggedForDeletion)
+            objects.erase(i);
     }
 };
 

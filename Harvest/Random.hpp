@@ -7,8 +7,13 @@ Integral random(Integral min, Integral max) {
     std::uniform_int_distribution<Integral> dist(min, max);
     return dist(engine);
 }*/
+int random(int min, int max) {
+    std::random_device rd;
+    std::default_random_engine engine(rd());
+    std::uniform_int_distribution<int> dist(min, max);
+    return dist(engine);
+}
 
-//template<>
 float random (float min, float max) {
     std::random_device rd;
     std::default_random_engine engine(rd());
