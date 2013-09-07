@@ -16,6 +16,11 @@ public:
         shape.setFillColor(color);
         rt.draw(shape);
     }
+
+    void drawLine(Point a, Point b, float width, Color color) {
+        sf::Vertex line[] = { sf::Vertex(a), sf::Vertex(b) };
+        rt.draw(line, 2, sf::Lines);
+    }
 };
 
 enum class ActorType {
@@ -107,11 +112,18 @@ public:
 
 class Harvester : public Actor {
 public:
+    unsigned target;
+    Point target_pos;
+
     Harvester(Drawer& rt, Config& config, unsigned id, Point const& position)
         : Actor(rt, config, id, position)
+        , target(0u)
     { }
     void draw() override {
         rt.drawCircle(position, 12.f, config.get("harvester_color", sf::Color(20, 170, 30)));
+        if (target != 0) {
+            rt.drawLine(position, target_pos, 2.f, sf::Color::Green);
+        }
     }
     ActorType getType() override { return ActorType::Harvester; }
 };

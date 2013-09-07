@@ -201,16 +201,27 @@ public:
                 }
             }
             else if (object->getType() == ActorType::Harvester) {
-                auto neighbours = query(object->position, 100.f, object->getId(), rocks);
-                // any rocks nearby?
-                if (!neighbours.empty()) {
-                    unsigned n = random(0, neighbours.size()-1);
-                    // is the harvester charged?
-                    if (object->energy > 0.f && object->energy <= 1.f) {
+                Harvester& hv = *dynamic_cast<Harvester*>(object.get());
+                // is the harvester farming?
+                if (hv.target == 0) {
+                    if (hv.energy > 0.f) { // if it's not loaded, don't even look around
+                        auto neighbours = query(object->position, 100.f, object->getId(), rocks);
+                        // any rocks nearby?
+                        if (!neighbours.empty()) {
+                            unsigned n = random(0, neighbours.size()-1);
+                            hv.target = neighbours[n];
+                            hv.target_pos = objects[hv.target]->position;
+                        }
+                    }
+                } 
+                else {
+                    if (hv.energy > 0.f) { // currently farming
                         object->energy -= 0.05f;
-                    } else if (object->energy < 0.f) {
+                    } 
+                    else { // just finished farming
                         object->energy = 0.f;
                         money += 1;
+                        hv.target = 0;
                     }
                 }
             }
