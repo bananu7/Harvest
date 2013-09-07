@@ -9,6 +9,7 @@
 
 #include "Config.hpp"
 #include "Actor.hpp"
+#include "Random.hpp"
 
 int main(void)
 {
@@ -27,6 +28,14 @@ int main(void)
     Spawner<Turret> turretSpawner(window, globalConfig);
     std::map<unsigned, std::unique_ptr<Actor>> objects;
     unsigned objectIdCounter = 0;
+    
+    // spawn a few rocks
+    Spawner<Rock> rockSpawner(window, globalConfig);
+    for (unsigned i = 0; i < 20; ++i) {
+        sf::Vector2f pos (random(0.f, 800.f), random(0.f, 600.f));
+        objects[++objectIdCounter] = rockSpawner.spawn_ptr(pos);
+    }
+
 
     float delta = 0.f;
 
@@ -42,7 +51,7 @@ int main(void)
             case sf::Event::MouseButtonPressed:
                 break;
             case sf::Event::MouseButtonReleased: {
-                sf::Vector2f clickPos (event.mouseButton.x, event.mouseButton.y);
+                sf::Vector2f clickPos (static_cast<float>(event.mouseButton.x), static_cast<float>(event.mouseButton.y));
                 objects[++objectIdCounter] = turretSpawner.spawn_ptr(clickPos);
                 break; }
                 //case sf::Event::MouseMoved:

@@ -38,7 +38,7 @@ public:
     Turret(sf::RenderTarget& rt, Config& config, Info const& info)
         : Actor(rt, config)
     {
-        shape.setRadius(10);
+        shape.setRadius(10.f);
         shape.setPosition(info.position);
         shape.setFillColor(config.get("turret_color", sf::Color::Red));
     }
@@ -55,7 +55,7 @@ class SolarPlant : public Actor {
 };
 
 class Rock : public Actor {
-    sf::ConvexShape shape;
+    sf::CircleShape shape;
 public:
     struct Info {
         sf::Vector2f position;
@@ -65,10 +65,15 @@ public:
     Rock(sf::RenderTarget& rt, Config& config, Info const& info)
         : Actor(rt, config)
     {
-        shape.setPointCount(rand() % 4 + 4);
+        //shape.setPointCount(rand() % 4 + 4);
+        shape.setRadius(15.f);
+        shape.setPosition(info.position);
         /*for (unsigned i = 0; i < shape.getPointCount(); ++i)
             shape.setPoint(i, sf::Vector2f(*/
         shape.setFillColor(config.get("rock_color", sf::Color(120, 120, 120)));
+    }
+    void draw() override {
+        rt.draw(shape);
     }
 };
 
