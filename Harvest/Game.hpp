@@ -113,11 +113,15 @@ public:
         // output debug info
         sf::Text text("Selected : " + getClickStateAsStr(), font);
         text.setPosition(0, 0);
-        text.setColor(sf::Color::Black);
+        text.setColor(sf::Color(190, 190, 190));
         rt.draw(text);
 
         text.setPosition(0, 30);
         text.setString("Object count: " + boost::lexical_cast<std::string>(objects.size()));
+        rt.draw(text);
+
+        text.setPosition(0, 60);
+        text.setString("Money: " + boost::lexical_cast<std::string>(money));
         rt.draw(text);
     }
 
@@ -141,6 +145,9 @@ public:
         possible_targets.insert(ActorType::Link);
         possible_targets.insert(ActorType::Turret);
 
+        std::set<ActorType> rocks;
+        rocks.insert(ActorType::Rock);
+
         for (auto& object : objects | boost::adaptors::map_values) {
             if (object->getType() == ActorType::SolarPlant) {
                 if (object->energy >= 100.f) {
@@ -158,7 +165,7 @@ public:
                     }
                 }
                 else {
-                    object->energy += 10.f;
+                    object->energy += 5.f;
                 }
             }
             else if (object->getType() == ActorType::EnergyPacket) {
@@ -167,8 +174,17 @@ public:
                 // reached the target
                 if (distance(p.position, target->position) < 5.f) {
                     // Are we terminating or bouncing?
+                    bool bounce = false;
+
                     if (target->getType() == ActorType::Link) {
-                        // bounce
+                        bounce = true;
+                    }
+                    else if ((target->getType() == ActorType::Harvester) &&
+                             (target->energy > 0.f)) {
+                        bounce = true;
+                    }
+
+                    if (bounce) {
                         auto neighbours = query(target->position, 100.f, target->getId(), possible_targets);
                         unsigned n = random(0, neighbours.size()-1);
                         p.target = neighbours[n];
@@ -182,6 +198,20 @@ public:
                 else {
                     p.position.x += cosf(direction(p.position, target->position));
                     p.position.y += sinf(direction(p.position, target->position));
+                }
+            }
+            else if (object->getType() == ActorType::Harvester) {
+                auto neighbours = query(object->position, 100.f, object->getId(), rocks);
+                // any rocks nearby?
+                if (!neighbours.empty()) {
+                    unsigned n = random(0, neighbours.size()-1);
+                    // is the harvester charged?
+                    if (object->energy > 0.f && object->energy <= 1.f) {
+                        object->energy -= 0.05f;
+                    } else if (object->energy < 0.f) {
+                        object->energy = 0.f;
+                        money += 1;
+                    }
                 }
             }
         }
