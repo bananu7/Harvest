@@ -116,6 +116,22 @@ public:
             clickState = ClickState::Idle;
         }
     }
+    void mouseMove(sf::Event const& e) {
+        sf::Vector2f mousePos (static_cast<float>(e.mouseMove.x), static_cast<float>(e.mouseMove.y));
+
+        // TO
+        /*tutaj trzeba poprawic - najprawdopodobniej dodac nowy typ obiektu "kursor"
+        wszystko narysowane tutaj jest pozniej niszczone*/
+
+        if (clickState == ClickState::BuildLink) {
+            std::set<ActorType> links;
+            links.insert(ActorType::Link);
+            auto neighbours = query(mousePos, 100.f, 0, links);
+            for (unsigned n : neighbours) {
+                drawer.drawLine(mousePos, objects[n]->position, 1.f, Color::White);
+            }
+        }
+    }
 
     void keyPressed(sf::Event const& e) {
         switch (e.key.code) {

@@ -17,6 +17,16 @@ public:
         rt.draw(shape);
     }
 
+    void drawRegularPolygon(Point position, float radius, Color color, unsigned walls) {
+        static sf::CircleShape shape;
+        shape.setRadius(radius);
+        shape.setOrigin(radius, radius);
+        shape.setPosition(position);
+        shape.setFillColor(color);
+        shape.setPointCount(walls);
+        rt.draw(shape);
+    }
+
     void drawSquare(Point position, float size, float direction, Color color) {
         static sf::RectangleShape shape;
         shape.setSize(sf::Vector2f(size, size));
@@ -121,7 +131,7 @@ public:
         : Actor(rt, config, id, position)
     { }
     void draw() override {
-        rt.drawCircle(position, 15.f, config.get("rock_color", sf::Color(120, 120, 120)));
+        rt.drawRegularPolygon(position, 15.f, config.get("rock_color", sf::Color(120, 120, 120)), 7);
     }
     ActorType getType() override { return ActorType::Rock; }
 };

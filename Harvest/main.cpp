@@ -50,7 +50,9 @@ int main(void)
             case sf::Event::MouseButtonReleased:
                 game.mouseRelease(event);
                 break;
-                //case sf::Event::MouseMoved:
+            case sf::Event::MouseMoved:
+                game.mouseMove(event);
+                break;
                 //case sf::Event::MouseWheelMoved:
             case sf::Event::Closed:
                 return 0;
