@@ -293,7 +293,7 @@ public:
                     turret.target_pos = enemy.position;
                 }
                 else {
-                    auto & result = objects.find(turret.target);
+                    auto result = objects.find(turret.target);
                     if (result == objects.end()) {
                         turret.target = 0;
                         continue;
@@ -324,7 +324,7 @@ public:
                         }
                     }
                     else {
-                        auto & result = objects.find(tank.target);
+                        auto result = objects.find(tank.target);
                         if (result == objects.end()) {
                             tank.target = 0;
                             continue;
